@@ -1,0 +1,32 @@
+{
+  "name": "starmark-guide",
+  "displayName": "StarMark Guide",
+  "description": "星签智引是一个基于人工智能的浏览器插件，专为优化您的书签和GitHub星标管理而设计。这款插件通过智能分析，自动生成多维度的标签和分类，使您能快速准确地找到所需的网页或项目。无论是工作还是个人学习，星签智引都能显著提高您的信息检索效率。",
+  "author": "BaoGuo",
+  "homepage": "https://github.com/ba0gu0/starmark-guide",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build"
+  },
+  "dependencies": {
+    "@mendable/firecrawl-js": "^1.2.2",
+    "vue": "^3.4.21",
+    "vue-i18n": "^9.14.0"
+  },
+  "devDependencies": {
+    "@arco-design/web-vue": "^2.56.1",
+    "@intlify/unplugin-vue-i18n": "^4.0.0",
+    "@types/webextension-polyfill": "^0.10.7",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "extension": "latest",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6",
+    "vite-plugin-web-extension": "^4.1.1",
+    "vue-tsc": "^2.0.6",
+    "webextension-polyfill": "^0.10.0"
+  }
+}

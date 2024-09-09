@@ -1,0 +1,8 @@
+{
+  "appName": {
+    "message": "Hướng Dẫn StarMark"
+  },
+  "appDescription": {
+    "message": "Hướng Dẫn StarMark là một tiện ích mở rộng trình duyệt được hỗ trợ bởi AI, được thiết kế để tối ưu hóa việc quản lý dấu trang và đánh dấu sao GitHub của bạn. Công cụ này tự động tạo ra các thẻ và phân loại đa chiều thông qua phân tích thông minh, cho phép bạn nhanh chóng và chính xác tìm thấy các trang web hoặc dự án bạn cần. Dù cho công việc hay học tập cá nhân, Hướng Dẫn StarMark đều cải thiện đáng kể hiệu quả tìm kiếm thông tin của bạn."
+  }
+}
