@@ -31,6 +31,12 @@
   "permissions": [
     "storage",
     "bookmarks",
-    "https://example.com/*"
+    "activeTab",
+    "scripting",
+    "declarativeNetRequest",
+    "notifications"
+  ],
+  "{{chrome}}.host_permissions": [
+    "<all_urls>"
   ]
 }

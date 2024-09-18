@@ -1,3 +1,5 @@
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import webExtension, { readJsonFile } from "vite-plugin-web-extension";
@@ -12,7 +14,7 @@ function generateManifest() {
   return {
     version: pkg.version,
     author: pkg.author,
-    homepage: pkg.homepage,
+    homepage_url: pkg.homepage,
     ...manifest,
   };
 }
@@ -21,6 +23,8 @@ function generateManifest() {
 export default defineConfig({
   plugins: [
     vue(),
+    wasm(), 
+    topLevelAwait(),
     webExtension({
       browser: process.env.TARGET || "chrome",
       manifest: generateManifest,

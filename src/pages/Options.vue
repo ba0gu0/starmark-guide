@@ -1,133 +1,226 @@
 <template>
-  <div>
-    <Input v-model="apiKey" placeholder="Enter API Key"></Input>
-    <Input v-model="urls" placeholder="Enter URLs (comma separated)"></Input>
-    <Button type="primary" @click="startCrawl">Start Crawl</Button>
-    <Button type="primary" @click="continueCrawl">Continue Crawl</Button>
-    <div v-if="currentTask && currentTask.success">
-      <h3>{{ currentTask.title }}</h3>
-      <p>{{ currentTask.description }}</p>
-      <p>{{ currentTask.language }}</p>
-      <p>{{ currentTask.sourceURL }}</p>
+  <Layout class="layout">
+    <div class="menu-demo" :class="{ 'menu-collapsed': isCollapsed }">
+      <Menu mode="pop" showCollapseButton :collapsed="isCollapsed" :default-selected-keys="['1']"
+        @menu-item-click="onMenuItemClick" @collapse="onCollapse" class="centered-menu">
+        <MenuItem key="1">
+        <template #icon>
+          <IconSettings />
+        </template>
+        {{ i18.t('options.plugin.title') }}
+        </MenuItem>
+        <MenuItem key="2">
+        <template #icon>
+          <IconRobot />
+        </template>
+        {{ i18.t('options.model.title') }}
+        </MenuItem>
+        <MenuItem key="3">
+        <template #icon>
+          <IconBug />
+        </template>
+        {{ i18.t('options.crawl.title') }}
+        </MenuItem>
+      </Menu>
     </div>
-    <Progress size="large" :percent="progress" :color="{
-      '0%': 'rgb(var(--primary-6))',
-      '100%': 'rgb(var(--success-6))',
-    }" />
-  </div>
+    <Layout>
+      <Content :class="{ 'content-collapsed': isCollapsed }">
+        <Card :bordered="false" :style="{ height: '100%' }" class="content-card">
+          <component :is="currentComponent" />
+        </Card>
+      </Content>
+    </Layout>
+  </Layout>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
-import { useLocale } from '../hooks/locale';
-import { initializeFirecrawl, scrapeUrl } from '../hooks/firecrawl';
-import { Input, Button, Progress, Notification } from '@arco-design/web-vue';
+import { ref, computed, markRaw, onMounted } from 'vue';
+import { useLocale } from '../utils/locale';
+import {
+  Layout,
+  Menu,
+  Card,
+  Typography
+} from '@arco-design/web-vue';
+import {
+  IconSettings,
+  IconRobot,
+  IconBug
+} from '@arco-design/web-vue/es/icon';
+import Setting from './Options/Setting.vue';
+import Models from './Options/Models.vue';
+import Crawl from './Options/Crawl.vue';
 
-interface Task {
-  title?: string;
-  description?: string;
-  language?: string;
-  sourceURL: string;
-  success: boolean;
-}
+const { Content } = Layout;
+const { Item: MenuItem } = Menu;
 
-const { i18, currentLocale, changeLocale } = useLocale();
+const { i18 } = useLocale();
 
-const apiKey = ref<string>('this_is_just_a_preview_token');
+const isDarkMode = ref(false);
+const currentSection = ref('1');
+const isCollapsed = ref(false);
 
-const urls = ref<string>(`
-https://google.com, https://microsoft.com, https://apple.com, https://facebook.com, 
-https://amazon.com, https://ibm.com, https://intel.com, https://cisco.com, https://oracle.com,
-https://sap.com, https://delltechnologies.com, https://hpe.com, https://salesforce.com, https://twitter.com,
-https://adobe.com, https://vmware.com, https://paypal.com, https://squareup.com, https://linkedin.com, 
-https://uber.com, https://airbnb.com, https://netflix.com, https://tesla.com, https://samsung.com, 
-https://sony.com, https://panasonic.com, https://nvidia.com, https://amd.com, https://github.com, 
-https://xiaomi.com, https://huawei.com, https://alibaba.com, https://tencent.com, https://baidu.com, 
-https://zoom.us, https://reddit.com, https://spotify.com, https://ebay.com, https://yahoo.com, 
-https://etsy.com, https://shopify.com, https://snapchat.com, https://dropbox.com, https://asus.com,
-https://mozilla.org, https://wordpress.org, https://wework.com, https://twitch.tv, https://stripe.com,
-https://epicgames.com
-`);
-const currentTask = ref<Task | null>(null);
-const progress = ref<number>(0);
-const tasks = ref<string[]>([]);
-const taskIndex = ref<number>(0);
-const lastRunTime = ref<number>(0);
-const maxTasksPerMinute = 5;
-const rateLimitPeriod = 60000; // milliseconds
+const currentTitle = computed(() => {
+  switch (currentSection.value) {
+    case '1': return i18.t('options.plugin.title');
+    case '2': return i18.t('options.model.title');
+    case '3': return i18.t('options.crawl.title');
+    default: return '';
+  }
+});
 
-const startCrawl = async () => {
-  const urlList: string[] = urls.value.split(',').map(url => url.trim());
-  tasks.value = urlList;
-  taskIndex.value = 0;
-  lastRunTime.value = Date.now();
-  await processTasks();
+const currentComponent = computed(() => {
+  switch (currentSection.value) {
+    case '1': return markRaw(Setting);
+    case '2': return markRaw(Models);
+    case '3': return markRaw(Crawl);
+    default: return null;
+  }
+});
+
+const onMenuItemClick = (key: string) => {
+  currentSection.value = key;
 };
 
-const processTasks = async () => {
-  for (let i = 0; i < maxTasksPerMinute && taskIndex.value < tasks.value.length; i++, taskIndex.value++) {
-    console.log(`Processing task ${taskIndex.value + 1}/${tasks.value.length}`);
-    const url = tasks.value[taskIndex.value];
-    await initializeFirecrawl(apiKey.value);
-    const result = await scrapeUrl(url);
-    if (result.success && result.metadata) {
-      currentTask.value = {
-        title: result.metadata.title,
-        description: result.metadata.description,
-        language: result.metadata.language,
-        sourceURL: url,
-        success: true
-      };
-    } else {
-      console.log('爬取失败', result)
-      Notification.warning({
-        title: '爬取失败',
-        content: `错误信息: ${result.error || (result.warning || '未知错误')}`
-      });
-    }
-    progress.value = (taskIndex.value + 1) / tasks.value.length;
-
-    if ((Date.now() - lastRunTime.value) >= rateLimitPeriod) {
-
-      break;
-    }
-  }
-  if (taskIndex.value < tasks.value.length) {
-
-    Notification.info({
-      title: 'Rate Limit Hit',
-      content: 'You have hit the rate limit. Please wait to continue.'
-    });
-  }
-};
-
-const continueCrawl = async () => {
-  const now = Date.now();
-  if (now - lastRunTime.value < rateLimitPeriod) {
-
-    Notification.warning({
-      title: 'Wait',
-      content: 'Please wait until the rate limit period passes before continuing.'
-    });
-    return;
-  }
-  lastRunTime.value = Date.now()
-
-  await processTasks();
+const onCollapse = (collapsed: boolean) => {
+  isCollapsed.value = collapsed;
 };
 
 onMounted(() => {
-  document.title = i18.t('option.title');
+  isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  updateTheme();
 });
+
+const updateTheme = () => {
+  if (isDarkMode.value) {
+    document.body.setAttribute('arco-theme', 'dark');
+  } else {
+    document.body.removeAttribute('arco-theme');
+  }
+};
+
 </script>
 
 <style scoped>
-div {
+.layout {
+  height: 100vh;
+  position: relative;
+  background-color: var(--color-bg-1);
+}
+
+.menu-demo {
+  position: absolute;
+  left: 20px;
+  top: 40px;
+  bottom: 40px;
+  z-index: 1;
+  transition: all 0.2s;
+}
+
+.menu-demo.menu-collapsed {
+  /* left: 20px; */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.menu-demo :deep(.arco-menu) {
+  width: 200px;
+  height: calc(100vh - 80px);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-bg-2);
+  transition: all 0.2s;
+  border-radius: 10px;
+  /* 添加圆角 */
+}
+
+.menu-demo :deep(.arco-menu-collapse-button) {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  right: -16px;
+  /* 将按钮移到菜单外部 */
+  z-index: 1;
+  /* 确保按钮在菜单上方 */
+}
+
+.menu-demo :deep(.arco-menu:not(.arco-menu-collapsed) .arco-menu-collapse-button) {
+  bottom: 8px;
+  transform: translateX(0);
+  /* 移除之前的平移 */
+}
+
+.menu-demo :deep(.arco-menu:not(.arco-menu-collapsed))::before {
+  content: '';
+  position: absolute;
+  right: -24px;
+  /* 调整位置以适应新的按钮位置 */
+  bottom: 0;
+  width: 48px;
+  height: 48px;
+  background-color: inherit;
+  border-radius: 50%;
+  box-shadow: -4px 0 2px var(--color-bg-2), 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.menu-demo :deep(.arco-menu.arco-menu-collapsed) {
+  width: 48px;
+  height: auto;
+  padding-top: 24px;
+  padding-bottom: 138px;
+  border-radius: 22px;
+}
+
+.menu-demo :deep(.arco-menu.arco-menu-collapsed .arco-menu-collapse-button) {
+  right: 8px;
+  /* 折叠时将按钮放回菜单内部 */
+  bottom: 16px;
+}
+
+.arco-layout-content {
+  padding: 16px 16px 16px 256px;
+  background: var(--color-fill-2);
+  transition: padding 0.2s;
+}
+
+.arco-layout-content.content-collapsed {
+  padding-left: 84px;
+}
+
+.content-card {
+  height: 95%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-bg-2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.content-card :deep(.arco-card-header) {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.content-card :deep(.arco-card-body) {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.arco-card {
+  height: 100%;
+}
+
+.centered-menu :deep(.arco-menu-inner) {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
-  margin: auto;
-  padding: 20px;
+  justify-content: center;
+  height: 100%;
+}
+
+.menu-demo :deep(.arco-menu.arco-menu-collapsed) {
+  padding-top: 40px;
+  padding-bottom: 60px;
+}
+
+.menu-demo :deep(.arco-menu.arco-menu-collapsed .arco-menu-collapse-button) {
+  bottom: 16px;
 }
 </style>

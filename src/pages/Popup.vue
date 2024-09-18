@@ -12,7 +12,7 @@
         <div class="content-block">
           <div v-for="item in searchResults.slice(0, 10)" :key="item.id" class="result-item" tabindex="0"
             @click="openUrl(item.url)">
-            <div class="item-icon" :style="{ backgroundColor: item.color }">
+            <div class="item-icon" :style="{ backgroundColor: getRandomColor() }">
               {{ item.icon }}
             </div>
             <div class="item-info">
@@ -26,7 +26,7 @@
         <div class="content-block">
           <div v-for="item in searchResults.slice(0, 10)" :key="item.id" class="result-item" tabindex="0"
             @click="openUrl(item.url)">
-            <div class="item-icon" :style="{ backgroundColor: item.color }">
+            <div class="item-icon" :style="{ backgroundColor: getRandomColor() }">
               {{ item.icon }}
             </div>
             <div class="item-info">
@@ -52,7 +52,7 @@
         <div class="content-block">
           <div v-for="item in filteredResults" :key="item.id" class="result-item" tabindex="0"
             @click="openUrl(item.url)">
-            <div class="item-icon" :style="{ backgroundColor: item.color }">
+            <div class="item-icon" :style="{ backgroundColor: getRandomColor() }">
               {{ item.icon }}
             </div>
             <div class="item-info">
@@ -65,9 +65,11 @@
       </div>
     </div>
     <div class="fixed-button-container">
-      <Button class="home-button" @click="openPage('src/home.html')" type="text" status="success">{{ $t('popup.homeButton')
+      <Button class="home-button" @click="openPage('src/home.html')" type="text" status="success">{{
+        $t('popup.homeButton')
         }}</Button>
-      <Button class="home-button" @click="openPage('src/option.html')" type="text" status="success">{{ $t('popup.optionButton')
+      <Button class="home-button" @click="openPage('src/options.html')" type="text" status="success">{{
+        $t('popup.optionButton')
         }}</Button>
     </div>
   </div>
@@ -77,9 +79,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { Input, Button } from '@arco-design/web-vue';
 import { IconSearch, IconClose } from '@arco-design/web-vue/es/icon';
-import { useLocale } from '../hooks/locale';
-import browser from 'webextension-polyfill'; // Import the polyfill
-
+import { useLocale } from '../utils/locale';
+import browser from 'webextension-polyfill';
+import { getStoredPopupAction } from '../utils/storage';
 
 const { i18, currentLocale, changeLocale } = useLocale()
 
@@ -108,21 +110,41 @@ const recentRecords = [
 
 // 模拟搜索结果
 const searchResults = [
-  { id: 1, name: 'Item with a very long name that should scroll', type: 'Type A', status: 'active', color: '#ff7d00', icon: 'A', url: 'https://example.com', tags: ['tag1', 'tag2'] },
-  { id: 2, name: 'Vue.js', type: 'Framework', status: 'active', color: '#4fc08d', icon: 'V', url: 'https://vuejs.org', tags: ['javascript', 'framework'] },
-  { id: 3, name: 'React', type: 'Library', status: 'active', color: '#61dafb', icon: 'R', url: 'https://reactjs.org', tags: ['javascript', 'library'] },
-  { id: 4, name: 'Angular', type: 'Framework', status: 'inactive', color: '#dd0031', icon: 'A', url: 'https://angular.io', tags: ['javascript', 'framework'] },
-  { id: 5, name: 'TypeScript', type: 'Language', status: 'active', color: '#007acc', icon: 'TS', url: 'https://www.typescriptlang.org', tags: ['javascript', 'language'] },
-  { id: 6, name: 'JavaScript', type: 'Language', status: 'active', color: '#f7df1e', icon: 'JS', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript', tags: ['language'] },
-  { id: 7, name: 'Node.js', type: 'Runtime', status: 'active', color: '#339933', icon: 'N', url: 'https://nodejs.org', tags: ['javascript', 'runtime'] },
-  { id: 8, name: 'Python', type: 'Language', status: 'inactive', color: '#3776ab', icon: 'Py', url: 'https://www.python.org', tags: ['language'] },
-  { id: 9, name: 'Docker', type: 'Tool', status: 'active', color: '#2496ed', icon: 'D', url: 'https://www.docker.com', tags: ['tool'] },
+  { id: 1, name: 'Item with a very long name that should scroll', type: 'Type A', status: 'active', icon: 'A', url: 'https://example.com', tags: ['tag1', 'tag2'] },
+  { id: 2, name: 'Vue.js', type: 'Framework', status: 'active', icon: 'V', url: 'https://vuejs.org', tags: ['javascript', 'framework'] },
+  { id: 3, name: 'React', type: 'Library', status: 'active', icon: 'R', url: 'https://reactjs.org', tags: ['javascript', 'library'] },
+  { id: 4, name: 'Angular', type: 'Framework', status: 'inactive', icon: 'A', url: 'https://angular.io', tags: ['javascript', 'framework'] },
+  { id: 5, name: 'TypeScript', type: 'Language', status: 'active', icon: 'TS', url: 'https://www.typescriptlang.org', tags: ['javascript', 'language'] },
+  { id: 6, name: 'JavaScript', type: 'Language', status: 'active', icon: 'JS', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript', tags: ['language'] },
+  { id: 7, name: 'Node.js', type: 'Runtime', status: 'active', icon: 'N', url: 'https://nodejs.org', tags: ['javascript', 'runtime'] },
+  { id: 8, name: 'Python', type: 'Language', status: 'inactive', icon: 'Py', url: 'https://www.python.org', tags: ['language'] },
+  { id: 9, name: 'Docker', type: 'Tool', status: 'active', icon: 'D', url: 'https://www.docker.com', tags: ['tool'] },
 ];
+
+// 预定义10个不相近的颜色
+const predefinedColors = [
+  '#4CAF50', // 绿色
+  '#2196F3', // 蓝色
+  '#FFC107', // 琥珀色
+  '#E91E63', // 粉红色
+  '#9C27B0', // 紫色
+  '#FF5722', // 深橙色
+  '#00BCD4', // 青色
+  '#795548', // 棕色
+  '#FF9800', // 橙色
+  '#607D8B'  // 蓝灰色
+];
+
+// 获取随机颜色的函数
+const getRandomColor = () => {
+  const randomIndex = Math.floor(Math.random() * predefinedColors.length);
+  return predefinedColors[randomIndex];
+};
 
 // 默认显示最近访问记录中使用次数最多的前十条记录
 const topRecords = computed(() => recentRecords.slice(0, 10));
 
-
+const isDarkMode = ref(false);
 // 是否在搜索模式
 const isSearching = ref(false);
 
@@ -161,24 +183,49 @@ const openUrl = (url: string) => {
 
 const openPage = (url: string) => {
   const fullUrl = browser.runtime.getURL(url);
-
   browser.tabs.create({ url: fullUrl }).catch(e => console.error('Error opening tab:', e));
 };
 
-onMounted(() => {
+onMounted(async () => {
+  isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (isDarkMode.value) {
+    document.body.setAttribute('arco-theme', 'dark');
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.removeAttribute('arco-theme');
+    document.body.classList.remove('dark-mode');
+  }
+
+  const popupAction = await getStoredPopupAction();
+  if (popupAction !== 'search') {
+    openPage('src/home.html');
+    window.close(); // 关闭 popup
+  }
   document.title = i18.t('popup.title');
 })
+
+// 添加以下代码来监听系统主题变化
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+  isDarkMode.value = e.matches;
+  if (isDarkMode.value) {
+    document.body.setAttribute('arco-theme', 'dark');
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.removeAttribute('arco-theme');
+    document.body.classList.remove('dark-mode');
+  }
+});
+
 </script>
 
 <style scoped>
 .popup-container {
   width: 300px;
   padding: 16px;
-  border-radius: 8px;
   overflow-y: auto;
-  /* 使内容块可以上下滚动 */
   position: relative;
-  /* 确保按钮相对于容器定位 */
+  background-color: var(--popup-bg, #ffffff);
+  color: var(--popup-text, #333333);
 }
 
 .search-container {
@@ -195,19 +242,21 @@ onMounted(() => {
 }
 
 .history-keyword {
-  color: #999 !important;
+  color: var(--history-keyword-color, #666) !important;
   max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-  /* 添加这行 */
 }
 
 .content-block {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 12px;
+  background-color: var(--content-block-bg, transparent);
+  padding: 10px;
+  border-radius: 8px;
 }
 
 .result-item {
@@ -215,8 +264,9 @@ onMounted(() => {
   align-items: center;
   padding: 8px;
   border-radius: 6px;
-  background-color: #f5f5f5;
-  transition: transform 0.3s ease;
+  background-color: var(--result-item-bg, #f5f5f5);
+  color: var(--result-item-color, #333);
+  transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
   overflow: hidden;
 }
 
@@ -226,7 +276,6 @@ onMounted(() => {
 
 .result-item:hover .item-name {
   overflow: visible;
-  /* 鼠标悬停时显示完整文本 */
   position: relative;
   animation: scroll-text 10s linear infinite;
 }
@@ -249,7 +298,6 @@ onMounted(() => {
   flex-grow: 1;
   overflow: hidden;
   min-width: 0;
-  /* 添加这行确保容器不限制内容宽度 */
 }
 
 .item-name {
@@ -262,7 +310,7 @@ onMounted(() => {
 
 .item-type {
   font-size: 0.8em;
-  color: #666;
+  color: var(--item-type-color, #888);
 }
 
 .item-status {
@@ -300,9 +348,9 @@ onMounted(() => {
   display: flex;
   justify-content: space-around;
   width: 100%;
-  max-width: 300px; /* Adjust the width as necessary */
+  max-width: 300px;
   padding: 5px;
-  background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+  background-color: var(--button-container-bg, rgba(255, 255, 255, 0.8));
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   opacity: 0;
@@ -311,20 +359,46 @@ onMounted(() => {
 
 .text-button {
   font-size: 18px;
-  color: #333; /* Dark text for visibility */
+  color: var(--text-button-color, #333);
   transition: color 0.3s ease;
 }
 
 .text-button:hover {
-  color: #555; /* Darken text on hover for better interaction feedback */
+  color: #555;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
+}
+
+/* 黑暗模式样式 */
+:global(.dark-mode) {
+  --popup-bg: #1f1f1f;
+  --popup-text: #ffffff;
+  --content-block-bg: #2a2a2a;
+  --result-item-bg: #333;
+  --result-item-color: #fff;
+  --button-container-bg: rgba(42, 42, 42, 0.8);
+  --text-button-color: #fff;
+  --item-type-color: #c0c0c0;
+  --history-keyword-color: #e0e0e0;
+}
+
+:global(.dark-mode) .item-type {
+  color: #aaa;
+}
+
+:global(.dark-mode) .text-button:hover {
+  color: #ccc;
+}
+
+:global(.dark-mode) .fixed-button-container {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 </style>

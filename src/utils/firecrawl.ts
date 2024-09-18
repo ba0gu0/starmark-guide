@@ -11,7 +11,7 @@ interface FailureResponse {
   warning?: string;
 }
 
-type ScrapeResult = ScrapeResponse | FailureResponse;
+type ScrapeResult = ScrapeResponse<any> | FailureResponse;
 
 export function initializeFirecrawl(apiKey: string) {
   app = new FirecrawlApp({ apiKey });
@@ -23,10 +23,22 @@ export async function scrapeUrl(url: string): Promise<ScrapeResult> {
   }
 
   try {
-    const scrapeResult = await app.scrapeUrl(url, { formats: ['markdown', 'html'] }) as ScrapeResponse;
+    const scrapeResult = await app.scrapeUrl(url, { formats: ['markdown', 'html'] }) as ScrapeResponse<any>;
 
     return scrapeResult;
   } catch (error) {
-    return { success: false,  error: `${error}` };
+    return { success: false, error: `${error}` };
+  }
+}
+
+export async function checkFirecrawlKey(apiKey: string): Promise<boolean> {
+  initializeFirecrawl(apiKey);
+  try {
+    const result = await scrapeUrl('https://www.google.com');
+    return result.success;
+  } catch (error) {
+    return false;
+  } finally {
+    app = null; // 重置app，以便后续可能的初始化
   }
 }

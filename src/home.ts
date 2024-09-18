@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import ArcoVue from '@arco-design/web-vue';
 import '@arco-design/web-vue/dist/arco.css';
 import Home from "./pages/Home.vue";
-import { i18n } from './hooks/locale'
+import { i18n } from './utils/locale'
 
 const app = createApp(Home);
 app.use(ArcoVue);
